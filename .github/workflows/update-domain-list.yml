@@ -1,0 +1,44 @@
+name: Update domain lists
+
+on:
+  schedule:
+    - cron: '0 0 * * *'   # 每天 UTC 00:00 自动运行
+  workflow_dispatch:        # 支持手动触发
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download and merge china lists
+        run: |
+          set -e
+          curl -fsSL -o apple-cn.txt   https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/apple-cn.txt
+          curl -fsSL -o china-list.txt https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/china-list.txt
+          curl -fsSL -o google-cn.txt  https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/google-cn.txt
+          cat apple-cn.txt china-list.txt google-cn.txt | sort -u > china.txt
+          rm -f apple-cn.txt china-list.txt google-cn.txt
+
+      - name: Download gfw list as foreign.txt
+        run: |
+          curl -fsSL -o foreign.txt https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/gfw.txt
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Domain Lists
+          body: |
+            上游来源：[Loyalsoldier/v2ray-rules-dat](https://github.com/Loyalsoldier/v2ray-rules-dat)
+
+            - `china.txt`：apple-cn + china-list + google-cn 合并去重
+            - `foreign.txt`：gfw 原样
+
+            固定下载地址：
+            - https://github.com/${{ github.repository }}/releases/latest/download/china.txt
+            - https://github.com/${{ github.repository }}/releases/latest/download/foreign.txt
+          files: |
+            china.txt
+            foreign.txt
